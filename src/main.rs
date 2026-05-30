@@ -10,7 +10,7 @@ fn main() {
         viscosity: 0.00001,
     };
     let initial_conditions_fn = |x: f64, y: f64| ((f64::sin(x), f64::sin(y)), 0.0);
-    
+
     let dy = cfg.height / cfg.y_resolution as f64;
     let dx = cfg.width / cfg.x_resolution as f64;
     let mut velocities = vec![0.0; cfg.x_resolution * cfg.y_resolution * 2];
@@ -24,10 +24,9 @@ fn main() {
             velocities[idx + 1] = v.1;
         }
     }
-    
+
     let mut grid = Grid::new(cfg, InitialConditions(velocities));
     for _ in 0..100 {
         grid = grid.step_euler(0.001);
     }
 }
-

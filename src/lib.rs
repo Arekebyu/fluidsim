@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 use crate::messages::{Message, Response};
 use crate::solver::{Config, Grid, InitialConditions};
 
+pub mod math;
 pub mod messages;
 pub mod solver;
 
