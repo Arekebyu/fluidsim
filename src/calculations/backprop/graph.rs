@@ -119,29 +119,28 @@ impl Context {
             let node = &self.nodes[node_id];
             let grad = node.grad;
             let op = node.op.clone();
-            if let Some(op) = op{
+            if let Some(op) = op {
                 match op {
                     Op::Add(l, r) => {
-                        self.nodes[l].grad += grad;                       
-                        self.nodes[r].grad += grad;                       
-                    },
+                        self.nodes[l].grad += grad;
+                        self.nodes[r].grad += grad;
+                    }
                     Op::Sub(l, r) => {
-                        self.nodes[l].grad += grad;                       
-                        self.nodes[r].grad -= grad;                       
-                    },
+                        self.nodes[l].grad += grad;
+                        self.nodes[r].grad -= grad;
+                    }
                     Op::Mul(l, r) => {
                         self.nodes[l].grad += grad * self.nodes[r].val;
-                        self.nodes[r].grad += grad * self.nodes[l].val;                       
-                    },
+                        self.nodes[r].grad += grad * self.nodes[l].val;
+                    }
                     Op::Sin(inp) => {
                         self.nodes[inp].grad += f32::cos(self.nodes[inp].val) * grad;
-                    },
+                    }
                     Op::ReLU(inp) => {
                         if self.nodes[inp].val > 0.0 {
                             self.nodes[inp].grad += grad;
                         }
-
-                    },
+                    }
                 }
             }
         }

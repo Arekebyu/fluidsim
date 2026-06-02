@@ -1,8 +1,3 @@
-use crate::math::graph::{*};
-use crate::math::fft::{*};
-
-// --- Float-based Complex for Reference Tests ---
-
 #[derive(Debug, Clone, Copy)]
 struct FloatComplex {
     re: f32,
@@ -108,8 +103,16 @@ fn test_fft_vs_dft() {
     for i in 0..float_input.len() {
         let val_re = ctx.get_val(fft_input[i].re);
         let val_im = ctx.get_val(fft_input[i].im);
-        assert!((val_re - dft_res[i].re).abs() < 1e-3, "Mismatch at index {} re", i);
-        assert!((val_im - dft_res[i].im).abs() < 1e-3, "Mismatch at index {} im", i);
+        assert!(
+            (val_re - dft_res[i].re).abs() < 1e-3,
+            "Mismatch at index {} re",
+            i
+        );
+        assert!(
+            (val_im - dft_res[i].im).abs() < 1e-3,
+            "Mismatch at index {} im",
+            i
+        );
     }
 }
 
@@ -117,7 +120,7 @@ fn test_fft_vs_dft() {
 fn test_fft_invertibility_1d() {
     let mut ctx = Context::new();
     let original_floats = vec![1.0, 2.0, -3.5, 0.0, 0.0, -1.25, 4.0, 3.0];
-    
+
     let mut data = original_floats
         .chunks(2)
         .map(|chunk| Complex {
@@ -136,9 +139,17 @@ fn test_fft_invertibility_1d() {
         let original_im = ctx.get_val(original[i].im);
         let reconstructed_re = ctx.get_val(data[i].re);
         let reconstructed_im = ctx.get_val(data[i].im);
-        
-        assert!((reconstructed_re - original_re).abs() < 1e-3, "Inversion re failed at {}", i);
-        assert!((reconstructed_im - original_im).abs() < 1e-3, "Inversion im failed at {}", i);
+
+        assert!(
+            (reconstructed_re - original_re).abs() < 1e-3,
+            "Inversion re failed at {}",
+            i
+        );
+        assert!(
+            (reconstructed_im - original_im).abs() < 1e-3,
+            "Inversion im failed at {}",
+            i
+        );
     }
 }
 
@@ -147,8 +158,14 @@ fn test_fft_invertibility_2d() {
     let mut ctx = Context::new();
     let width = 4;
     let height = 4;
-    
-    let mut data = vec![Complex { re: ctx.variable(0.0), im: ctx.variable(0.0) }; width * height];
+
+    let mut data = vec![
+        Complex {
+            re: ctx.variable(0.0),
+            im: ctx.variable(0.0)
+        };
+        width * height
+    ];
     for r in 0..height {
         for c in 0..width {
             let x = c as f32 / width as f32;
@@ -172,8 +189,16 @@ fn test_fft_invertibility_2d() {
         let reconstructed_re = ctx.get_val(data[i].re);
         let reconstructed_im = ctx.get_val(data[i].im);
 
-        assert!((reconstructed_re - original_re).abs() < 1e-3, "2D inversion re failed at {}", i);
-        assert!((reconstructed_im - original_im).abs() < 1e-3, "2D inversion im failed at {}", i);
+        assert!(
+            (reconstructed_re - original_re).abs() < 1e-3,
+            "2D inversion re failed at {}",
+            i
+        );
+        assert!(
+            (reconstructed_im - original_im).abs() < 1e-3,
+            "2D inversion im failed at {}",
+            i
+        );
     }
 }
 
@@ -249,4 +274,3 @@ fn test_numerical_gradient_checking() {
 
     assert!((analytical_grad - numerical_grad).abs() < 5e-3);
 }
-

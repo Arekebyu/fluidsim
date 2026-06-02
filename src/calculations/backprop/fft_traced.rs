@@ -1,30 +1,30 @@
-use crate::math::graph::*;
+use crate::math::backprop::graph::*;
 
 /// A custom complex number representation for spectral computations.
 #[derive(Clone, Copy)]
-pub struct Complex {
+pub struct ComplexVariable {
     pub re: Variable,
     pub im: Variable,
 }
 
-impl Complex {
+impl ComplexVariable {
     pub fn new(ctx: &mut Context, re: f32, im: f32) -> Self {
         let re = ctx.variable(re);
         let im = ctx.variable(im);
 
-        Complex { re, im }
+        ComplexVariable { re, im }
     }
 
     pub fn add(self, other: Self, ctx: &mut Context) -> Self {
         let re = ctx.add(self.re, other.re);
         let im = ctx.add(self.im, other.im);
-        Complex { re, im }
+        ComplexVariable { re, im }
     }
 
     pub fn sub(self, other: Self, ctx: &mut Context) -> Self {
         let re = ctx.sub(self.re, other.re);
         let im = ctx.sub(self.im, other.im);
-        Complex { re, im }
+        ComplexVariable { re, im }
     }
 
     pub fn mul(self, other: Self, ctx: &mut Context) -> Self {
@@ -34,13 +34,13 @@ impl Complex {
         let i1 = ctx.mul(self.re, other.im);
         let i2 = ctx.mul(self.im, other.re);
         let im = ctx.add(i1, i2);
-        Complex { re, im }
+        ComplexVariable { re, im }
     }
 }
 
 // --- Cooley-Tukey Radix-2 1D FFT ---
 
-pub fn fft_1d(ctx: &mut Context, data: &mut [Complex]) {
+pub fn fft_1d(ctx: &mut Context, data: &mut [ComplexVariable]) {
     let n = data.len();
     assert!(n.is_power_of_two(), "FFT size must be a power of two");
 
@@ -63,13 +63,13 @@ pub fn fft_1d(ctx: &mut Context, data: &mut [Complex]) {
     while len <= n {
         let half = len / 2;
         let angle = -2.0 * std::f32::consts::PI / len as f32;
-        let w_step = Complex {
+        let w_step = ComplexVariable {
             re: ctx.variable(f32::cos(angle)),
             im: ctx.variable(f32::sin(angle)),
         };
 
         for i in (0..n).step_by(len) {
-            let mut w = Complex {
+            let mut w = ComplexVariable {
                 re: ctx.variable(1.0),
                 im: ctx.variable(0.0),
             };
@@ -90,12 +90,12 @@ pub fn fft_1d(ctx: &mut Context, data: &mut [Complex]) {
 /// Hint: You can reuse fft_1d!
 /// Conjugating the inputs, running the forward FFT, and then conjugating
 /// the outputs and dividing by N is mathematically equivalent to the IFFT.
-pub fn ifft_1d(ctx: &mut Context, data: &mut [Complex]) {
+pub fn ifft_1d(ctx: &mut Context, data: &mut [ComplexVariable]) {
     let n = data.len();
     for x in data.iter_mut() {
         let zero = ctx.variable(0.0);
         let conj_im = ctx.sub(zero, x.im);
-        *x = Complex {
+        *x = ComplexVariable {
             re: x.re,
             im: conj_im,
         };
@@ -106,7 +106,7 @@ pub fn ifft_1d(ctx: &mut Context, data: &mut [Complex]) {
     for x in data.iter_mut() {
         let zero = ctx.variable(0.0);
         let conj_im = ctx.sub(zero, x.im);
-        *x = Complex {
+        *x = ComplexVariable {
             re: ctx.mul(x.re, s),
             im: ctx.mul(conj_im, s),
         };
@@ -117,10 +117,10 @@ pub fn ifft_1d(ctx: &mut Context, data: &mut [Complex]) {
 
 pub fn row_col_apply(
     ctx: &mut Context,
-    data: &mut [Complex],
+    data: &mut [ComplexVariable],
     width: usize,
     height: usize,
-    mut f: impl FnMut(&mut Context, &mut [Complex]),
+    mut f: impl FnMut(&mut Context, &mut [ComplexVariable]),
 ) {
     for row in 0..height {
         let row_index = row * width;
@@ -128,7 +128,7 @@ pub fn row_col_apply(
     }
 
     let mut columns = vec![
-        Complex {
+        ComplexVariable {
             re: ctx.variable(0.0,),
             im: ctx.variable(0.0)
         };
@@ -151,7 +151,7 @@ pub fn row_col_apply(
 /// 1. Loop through each row and run fft_1d.
 /// 2. Since columns are not contiguous, extract each column into a temporary
 ///    vector, run fft_1d on it, and copy the results back.
-pub fn fft_2d(ctx: &mut Context, data: &mut [Complex], width: usize, height: usize) {
+pub fn fft_2d(ctx: &mut Context, data: &mut [ComplexVariable], width: usize, height: usize) {
     assert_eq!(data.len(), width * height);
     assert!(width.is_power_of_two());
     assert!(height.is_power_of_two());
@@ -159,7 +159,7 @@ pub fn fft_2d(ctx: &mut Context, data: &mut [Complex], width: usize, height: usi
 }
 
 /// Computes the 2D IFFT in-place on a row-major flat vector.
-pub fn ifft_2d(ctx: &mut Context, data: &mut [Complex], width: usize, height: usize) {
+pub fn ifft_2d(ctx: &mut Context, data: &mut [ComplexVariable], width: usize, height: usize) {
     assert_eq!(data.len(), width * height);
     assert!(width.is_power_of_two());
     assert!(height.is_power_of_two());
