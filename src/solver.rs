@@ -33,8 +33,8 @@ pub struct InitialConditions {
 
 impl Grid {
     pub fn new(cfg: Config, initial_conditions: InitialConditions) -> Self {
-        let dy = cfg.x_bound / cfg.y_res as f32;
-        let dx = cfg.y_bound / cfg.x_res as f32;
+        let dy = cfg.y_bound / cfg.y_res as f32;
+        let dx = cfg.x_bound / cfg.x_res as f32;
 
         Grid {
             vx: initial_conditions.vx,
@@ -121,12 +121,12 @@ impl Grid {
     // perform inplace mutation because cloning might take a lot of time.
     pub fn step(&mut self, dt: f32) {
         let n = self.y_res * self.x_res;
-        let mut w_fourier: Vec<fft::ComplexNum> = self
+        let mut w: Vec<fft::ComplexNum> = self
             .vorticity
             .iter()
             .map(|&val| fft::ComplexNum { re: val, im: 0.0 })
             .collect();
-        fft::fft_2d(&mut w_fourier, self.x_res, self.y_res);
+        fft::fft_2d(&mut w, self.x_res, self.y_res);
 
         let mut exp_factor = vec![0.0; n];
         for y in 0..self.y_res {
@@ -136,28 +136,24 @@ impl Grid {
                 exp_factor[x + y * self.x_res] = (-self.viscosity * k_sq * dt).exp()
             }
         }
-        let n_n = self.compute_advection_fourier(&w_fourier);
+        let n_n = self.compute_advection_fourier(&w);
+
         let mut w_pred = vec![ComplexNum::zero(); n];
-            for i in 0..n {
-                w_pred[i] = (w_fourier[i].add(n_n[i].scale(dt)).scale(exp_factor[i]));
-            }
+        for i in 0..n {
+            w_pred[i] = w[i].add(n_n[i].scale(dt)).scale(exp_factor[i]);
+        }
+        let n_pred = self.compute_advection_fourier(&w_pred);
 
-            // 5. Evaluate predicted advection N*
-            let n_pred = self.compute_advection_fourier(&w_pred);
+        //Heun's trapezoidal method
+        for i in 0..n {
+            let term1 = w[i].add(n_n[i].scale(dt * 0.5)).scale(exp_factor[i]);
+            let term2 = n_pred[i].scale(dt * 0.5);
+            w[i] = term1.add(term2);
+        }
 
-            // 6. Corrector step (Heun's trapezoidal method):
-            // w^(n+1) = E * (w^n + dt/2 * N^n) + dt/2 * N*
-            let mut w_next = vec![ComplexNum::zero(); n];
-            for i in 0..n {
-                let term1 = (w_fourier[i].add(n_n[i].scale(dt * 0.5)).scale(exp_factor[i]));
-                let term2 = n_pred[i].scale(dt * 0.5);
-                w_next[i] = term1.add(term2);
-            }
-
-            // 7. Inverse FFT back to physical space to update state
-            fft::ifft_2d(&mut w_next, self.x_res, self.y_res);
-            for i in 0..n {
-                self.vorticity[i] = w_next[i].re;
-            }
+        fft::ifft_2d(&mut w, self.x_res, self.y_res);
+        for (i, w) in w.into_iter().enumerate() {
+            self.vorticity[i] = w.re;
+        }
     }
 }

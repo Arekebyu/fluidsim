@@ -20,6 +20,13 @@ impl ComplexNum {
         ComplexNum { re: 0.0, im: 0.0 }
     }
 
+    pub const fn conj(self) -> Self {
+        ComplexNum {
+            re: self.re,
+            im: -self.im,
+        }
+    }
+
     pub const fn add(self, other: Self) -> Self {
         ComplexNum {
             re: self.re + other.re,
@@ -87,16 +94,13 @@ pub fn fft_1d(data: &mut [ComplexNum]) {
 pub fn ifft_1d(data: &mut [ComplexNum]) {
     let n = data.len();
     for x in data.iter_mut() {
-        *x = ComplexNum {
-            re: x.re,
-            im: -x.im,
-        };
+        *x = x.conj();
     }
     fft_1d(data);
 
     let s = 1.0 / n as f32;
     for x in data.iter_mut() {
-        *x = x.scale(s);
+        *x = x.scale(s).conj();
     }
 }
 

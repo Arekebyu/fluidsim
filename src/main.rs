@@ -1,32 +1,73 @@
-mod solver;
-use solver::{Config, Grid, InitialConditions};
+use fluidsim::solver::{Config, Grid, InitialConditions};
+use std::io::Write;
+use std::time::Instant;
+use std::env;
 
-fn main() {
-    // let cfg = Config {
-    //     height: 1.0,
-    //     width: 1.0,
-    //     x_resolution: 100,
-    //     y_resolution: 100,
-    //     viscosity: 0.00001,
-    // };
-    // let initial_conditions_fn = |x: f64, y: f64| ((f64::sin(x), f64::sin(y)), 0.0);
-    //
-    // let dy = cfg.height / cfg.y_resolution as f64;
-    // let dx = cfg.width / cfg.x_resolution as f64;
-    // let mut velocities = vec![0.0; cfg.x_resolution * cfg.y_resolution * 2];
-    // for i in 0..cfg.y_resolution {
-    //     for j in 0..cfg.x_resolution {
-    //         let x = j as f64 * dx;
-    //         let y = i as f64 * dy;
-    //         let (v, _density) = initial_conditions_fn(x, y);
-    //         let idx = (i * cfg.x_resolution + j) * 2;
-    //         velocities[idx] = v.0;
-    //         velocities[idx + 1] = v.1;
-    //     }
-    // }
-    //
-    // let mut grid = Grid::new(cfg, InitialConditions(velocities));
-    // for _ in 0..100 {
-    //     grid = grid.step_euler(0.001);
-    // }
+fn main() -> std::io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    let width = args[1].parse().unwrap_or(64);
+    let height = args[2].parse().unwrap_or(64);
+    let viscosity = args[3].parse().unwrap_or(0.01);
+    let dt = args[4].parse().unwrap_or(0.01);
+    let steps = args[5].parse().unwrap_or(100);
+
+    print!("{} {} {} {} {}", width, height, viscosity, dt, steps);
+
+    let cfg = Config {
+        x_bound: 2.0 * std::f32::consts::PI,
+        y_bound: 2.0 * std::f32::consts::PI,
+        x_res: width,
+        y_res: height,
+        viscosity,
+    };
+
+    let dx = 2.0 * std::f32::consts::PI / width as f32;
+    let dy = 2.0 * std::f32::consts::PI / height as f32;
+    let mut initial_vorticity = vec![0.0; width * height];
+    for y in 0..height {
+        for x in 0..width {
+            let px = x as f32 * dx;
+            let py = y as f32 * dy;
+            initial_vorticity[y * width + x] = -2.0 * px.sin() * py.sin();
+        }
+    }
+
+    let initial_conditions = InitialConditions {
+        vorticity: initial_vorticity.clone(),
+        vx: vec![0.0; width * height],
+        vy: vec![0.0; width * height],
+    };
+
+    let mut solver = Grid::new(cfg, initial_conditions);
+
+    save("initial_vorticity.bin", &initial_vorticity)?;
+
+    println!(
+        "Running Rust solver for {} steps on a {}x{} grid...",
+        steps, width, height
+    );
+
+    let start = Instant::now();
+    for _ in 0..steps {
+        solver.step(dt);
+    }
+    let duration = start.elapsed();
+    println!(
+        "Rust execution time: {:.2} ms",
+        duration.as_secs_f64() * 1000.0
+    );
+
+    save("rust_vorticity.bin", &solver.vorticity)?;
+
+    Ok(())
+}
+
+/// Helper function to save a float slice to a binary file (little-endian)
+fn save(path: &str, data: &[f32]) -> std::io::Result<()> {
+    let mut file = std::fs::File::create(path)?;
+    for &val in data {
+        file.write_all(&val.to_le_bytes())?;
+    }
+    Ok(())
 }
