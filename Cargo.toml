@@ -11,4 +11,5 @@ futures = "0.3.32"
 serde = { version = "1.0.228", features = ["derive"] }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
+rand = "0.10.2"
 

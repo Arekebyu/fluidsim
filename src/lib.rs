@@ -1,12 +1,13 @@
 pub mod calculations;
+pub mod fno;
 pub mod messages;
 pub mod solver;
 use crate::messages::{Message, Response};
 use crate::solver::Config;
-use wasm_bindgen::prelude::{*};
 use crate::solver::Grid;
-use futures::prelude::{*};
+use futures::prelude::*;
 use std::convert::Infallible;
+use wasm_bindgen::prelude::*;
 
 pub async fn run(
     mut incoming: impl Stream<Item = Message> + Unpin,
@@ -19,9 +20,7 @@ pub async fn run(
             Message::Config(cfg, ic) => {
                 grid = Some(Grid::new(cfg, ic));
             }
-            Message::Step(dt) => {
-            }
+            Message::Step(dt) => {}
         }
-    };
+    }
 }
-

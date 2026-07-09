@@ -1,7 +1,7 @@
 use fluidsim::solver::{Config, Grid, InitialConditions};
+use std::env;
 use std::io::Write;
 use std::time::Instant;
-use std::env;
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
