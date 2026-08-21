@@ -1,8 +1,11 @@
+// This file is currently a black box because I don't actually
+// have enough mathematical knowledge when implementing this 
+// so I just transcribed the code into rust
 use serde::{Deserialize, Serialize};
 
 use crate::calculations::fft::{self, ComplexNum};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Grid {
     pub vx: Vec<f32>,
     pub vy: Vec<f32>,
@@ -15,7 +18,7 @@ pub struct Grid {
     pub viscosity: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
     pub x_bound: f32,
     pub y_bound: f32,
@@ -32,7 +35,7 @@ pub struct InitialConditions {
 }
 
 impl Grid {
-    pub fn new(cfg: Config, initial_conditions: InitialConditions) -> Self {
+    pub fn new(cfg: &Config, initial_conditions: InitialConditions) -> Self {
         let dy = cfg.y_bound / cfg.y_res as f32;
         let dx = cfg.x_bound / cfg.x_res as f32;
 
@@ -118,7 +121,6 @@ impl Grid {
 
         advection
     }
-    // perform inplace mutation because cloning might take a lot of time.
     pub fn step(&mut self, dt: f32) {
         let n = self.y_res * self.x_res;
         let mut w: Vec<fft::ComplexNum> = self

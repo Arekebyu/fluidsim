@@ -1,5 +1,7 @@
 pub mod backprop;
 pub mod fourier_layer;
+mod initialization;
+pub mod data;
 
 #[cfg(test)]
 pub mod tests;

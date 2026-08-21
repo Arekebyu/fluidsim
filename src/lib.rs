@@ -18,7 +18,7 @@ pub async fn run(
     while let Some(msg) = incoming.next().await {
         match msg {
             Message::Config(cfg, ic) => {
-                grid = Some(Grid::new(cfg, ic));
+                grid = Some(Grid::new(&cfg, ic));
             }
             Message::Step(dt) => {}
         }
