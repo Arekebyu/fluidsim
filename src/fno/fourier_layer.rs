@@ -1,129 +1,98 @@
+use std::iter::Chain;
+use std::ops::Range;
+use either::Either;
+
 use crate::fno::backprop::fft_traced::*;
 use crate::fno::{Context, Variable};
 
 pub struct FourierLayer {
-    pub n_pixels: usize,
-    pub out_channels: usize,
-    pub in_channels: usize,
-    pub width: usize,
-    pub height: usize,
-    pub modes_x: usize,
-    pub modes_y: usize,
-
-    pub w_weight: Vec<Vec<Variable>>, // Spatial bypass weight [out_channels][in_channels]
-    pub r_weight_re: Vec<Vec<Vec<Vec<Variable>>>>, // Spectral weight real [out_channels][in_channels][modes_x][modes_y]
-    pub r_weight_im: Vec<Vec<Vec<Vec<Variable>>>>, // Spectral weight imag [out_channels][in_channels][modes_x][modes_y]
-                                                   // ... and any other configurations (modes, width, height, etc.)
+    pub in_dims: (usize, usize),                        // width, height
+    pub channels: usize,                                // d_v
+    pub modes: (usize, usize),                          // num x modes, num y modes
+                                         
+    pub w: Vec<Vec<Variable>>,                          // W in the diagram
+    pub r: Vec<Vec<Vec<Vec<(Variable, Variable)>>>>,    // R in diagram, also \kappa
+        // w_weight has dimensions [output neuron][input neuron]
+        // r has dimensions [output][input][modes_x][modes_y] and is complex.
+    
 }
-
 
 impl FourierLayer {
     pub fn forward(&self, ctx: &mut Context, input: &[Variable]) -> Vec<Variable> {
+        let n = self.in_dims.0 * self.in_dims.1;
 
-        // branch
-        let mut branch = vec![ctx.variable(0.0); self.n_pixels * self.out_channels];
-
-        for pixel in 0..self.n_pixels {
-            for co in 0..self.out_channels {
-                let mut val = ctx.variable(0.0);
-                for ci in 0..self.in_channels {
-                    let input_val = input[pixel * self.in_channels + ci];
-                    let weight = self.w_weight[co][ci];
-                    let prod = ctx.mul(input_val, weight);
-                    val = ctx.add(val, prod);
+        // compute residual
+        let mut w_val = vec![ctx.variable(0.0); n * self.channels];
+        for i in 0..n {
+            for out_channel in 0..self.channels {
+                let mut val = &mut w_val[i * self.channels + out_channel];
+                for in_channel in 0..self.channels {
+                    // input has dimensions [x][y][channels] but is flattened
+                    let inp = input[i * n + in_channel];
+                    let w = self.w[out_channel][in_channel];
+                    let prod = ctx.mul(inp, w);
+                    *val = ctx.add(*val, prod);
                 }
-                branch[pixel * self.out_channels + co] = val;
             }
         }
 
-        // Fourier branch
-
-        // Convert input to ComplexVariable and run 2D FFT per input channel
-        let mut fourier_inputs =
-            vec![vec![ComplexVariable::new(ctx, 0.0, 0.0); self.n_pixels]; self.in_channels];
-        for ci in 0..self.in_channels {
-            for pixel in 0..self.n_pixels {
-                fourier_inputs[ci][pixel] = ComplexVariable {
-                    re: input[pixel * self.in_channels + ci],
+        // fourier part
+        // fourier transform f
+        let mut f_inp = vec![Vec::with_capacity(n) ; self.channels];
+            // vec![vec![ComplexVariable::new(ctx, 0.0, 0.0); n]; self.channels];
+        for in_channel in 0..self.channels {
+            for i in 0..n {
+                f_inp[in_channel][i] = ComplexVariable {
+                    re: input[i * self.channels + in_channel],
                     im: ctx.variable(0.0),
                 };
             }
-            fft_2d(ctx, &mut fourier_inputs[ci], self.width, self.height);
+            fft_2d(ctx, &mut f_inp[in_channel], self.in_dims.0, self.in_dims.1);
         }
 
-        // Initialize output Fourier grids to zero
-        let mut fourier_outputs = vec![
-            vec![
-                ComplexVariable {
-                    re: ctx.variable(0.0),
-                    im: ctx.variable(0.0),
-                };
-                self.n_pixels
-            ];
-            self.out_channels
-        ];
+        let mut f_out: Vec<Vec<ComplexVariable>> = vec![Vec::with_capacity(n) ; self.channels];
 
-        // Loop over the 2D frequency grid
-        for row in 0..self.height {
-            let ky_idx = if row < self.modes_y {
-                Some(row)
-            } else if row > self.height - self.modes_y {
-                Some(self.height - row)
-            } else {
-                None
-            };
+        let y_range = (0..self.modes.1.min(self.in_dims.1))
+            .map(|ky| (ky, ky))
+            .chain((1..self.modes.1).map(|ky| (self.in_dims.1 - ky, ky)));
 
-            for col in 0..self.width {
-                let kx_idx = if col < self.modes_x {
-                    Some(col)
-                } else if col > self.width - self.modes_x {
-                    Some(self.width - col)
-                } else {
-                    None
-                };
+        let x_range = (0..self.modes.0.min(self.in_dims.0))
+            .map(|kx| (kx, kx))
+            .chain((1..self.modes.0).map(|kx| (self.in_dims.0 - kx, kx)));
 
-                // If this mode is kept, multiply by the complex weights
-                if let (Some(kx), Some(ky)) = (kx_idx, ky_idx) {
-                    let pixel_idx = row * self.width + col;
+        // not very simd friendly, should adapt
+        for (row, ky) in y_range {
+            for (col, kx) in x_range.clone() {
+                let i = row * self.in_dims.0 + col;
 
-                    for co in 0..self.out_channels {
-                        let mut sum = ComplexVariable {
-                            re: ctx.variable(0.0),
-                            im: ctx.variable(0.0),
-                        };
+                for output_channel in 0..self.channels {
+                    let mut sum = ComplexVariable {
+                        re: ctx.variable(0.0),
+                        im: ctx.variable(0.0),
+                    };
 
-                        for ci in 0..self.in_channels {
-                            // Get complex weight R_co_ci[kx][ky]
-                            let weight = ComplexVariable {
-                                re: self.r_weight_re[co][ci][kx][ky],
-                                im: self.r_weight_im[co][ci][kx][ky],
-                            };
-
-                            let x_val = fourier_inputs[ci][pixel_idx];
-                            let prod = weight.mul(x_val, ctx); // Complex multiplication
-                            sum = sum.add(prod, ctx); // Complex addition
-                        }
-                        fourier_outputs[co][pixel_idx] = sum;
+                    for input_channel in 0..self.channels {
+                        let (re, im) = self.r[output_channel][input_channel][kx][ky];
+                        let weight = ComplexVariable {re, im};
+                        let prod = weight.mul(f_inp[input_channel][i], ctx);
+                        sum = sum.add(prod, ctx);
                     }
+                    f_out[output_channel][i] = sum;
                 }
             }
         }
 
-        // 4. Run 2D IFFT back to physical space per output channel
-        let mut spectral_out = vec![ctx.variable(0.0); self.n_pixels * self.out_channels];
-        for co in 0..self.out_channels {
-            ifft_2d(ctx, &mut fourier_outputs[co], self.width, self.height);
-
-            for pixel in 0..self.n_pixels {
-                // Extract real part of the IFFT output
-                spectral_out[pixel * self.out_channels + co] = fourier_outputs[co][pixel].re;
+        let mut ret = Vec::with_capacity(n * self.channels);
+        for output_channel in 0..self.channels {
+            ifft_2d(ctx, &mut f_out[output_channel], self.in_dims.0, self.in_dims.1);
+            for i in 0..n {
+                let idx = i + self.channels + output_channel;
+                ret[idx] = f_out[output_channel][i].re;
+                ret[idx] = ctx.add(w_val[idx], ret[idx]);
+                ret[idx] = ctx.relu(ret[idx]);
             }
         }
-        let mut output = vec![ctx.variable(0.0); self.n_pixels * self.out_channels];
-        for i in 0..output.len() {
-            let sum = ctx.add(branch[i], spectral_out[i]);
-            output[i] = ctx.relu(sum); // Or your activation function of choice
-        }
-        output
+        ret
+        
     }
 }

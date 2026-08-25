@@ -2,6 +2,7 @@ pub mod backprop;
 pub mod fourier_layer;
 mod initialization;
 pub mod data;
+pub mod train;
 
 #[cfg(test)]
 pub mod tests;
@@ -10,6 +11,21 @@ use fourier_layer::FourierLayer;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 use crate::fno::backprop::graph::{Context, Variable};
+
+pub struct FnoWeights{
+    pub lifting_w: Vec<Vec<f32>>, // [layer_channels][in_channels]
+    pub lifting_b: Vec<f32>,      // [layer_channels]
+
+    // Fourier Layers
+    pub fourier_layers: Vec<FourierLayer>,
+
+    // Projection Layer parameters (Direct fields)
+    pub proj_w1: Vec<Vec<f32>>, // [layer_channels][layer_channels]
+    pub proj_b1: Vec<f32>,
+    pub proj_w2: Vec<Vec<f32>>, // [out_channels][layer_channels]
+    pub proj_b2: Vec<f32>,
+}
+
 
 pub struct FNO {
     pub lifting_w: Vec<Vec<Variable>>, // [layer_channels][in_channels]

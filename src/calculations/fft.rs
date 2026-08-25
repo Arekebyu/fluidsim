@@ -53,7 +53,8 @@ pub fn fft_1d(data: &mut [ComplexNum]) {
     let n = data.len();
     assert!(n.is_power_of_two(), "FFT size must be a power of two");
 
-    // butterfly
+    // scramble so that result of fft is unscrambled
+    // i^th entry goes to bit reversed location in base 2
     let mut j = 0;
     for i in 0..n {
         if i < j {
