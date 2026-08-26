@@ -1,7 +1,6 @@
 use crate::fno::initialization::generate_initial_conditions;
-use crate::solver::InitialConditions;
-use crate::{Config, Grid, solver};
-    use rand::rngs::StdRng;
+use crate::{Config, Grid};
+use rand::rngs::StdRng;
 
 #[derive(Clone, Debug)]
 pub struct Trajectory {

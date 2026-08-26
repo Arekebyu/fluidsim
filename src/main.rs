@@ -39,7 +39,7 @@ fn main() -> std::io::Result<()> {
         vy: vec![0.0; width * height],
     };
 
-    let mut solver = Grid::new(cfg, initial_conditions);
+    let mut solver = Grid::new(&cfg, initial_conditions);
 
     save("initial_vorticity.bin", &initial_vorticity)?;
 
