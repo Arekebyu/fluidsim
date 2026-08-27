@@ -49,20 +49,25 @@ fn test_fno_forward_and_training() {
     ctx.backward(total_loss);
 
     // Verify gradients propagate across all parameter tensors
-    let lift_has_grad = fno.lift_layer.w.iter().any(|row| {
-        row.iter().any(|&v| ctx.get_grad(v) != 0.0)
-    });
+    let lift_has_grad = fno
+        .lift_layer
+        .w
+        .iter()
+        .any(|row| row.iter().any(|&v| ctx.get_grad(v) != 0.0));
     assert!(lift_has_grad, "Lifting gradients should be non-zero");
 
-    let w_has_grad = fno.fourier_layers[0].residual.w.iter().any(|row| {
-        row.iter().any(|&v| ctx.get_grad(v) != 0.0)
-    });
+    let w_has_grad = fno.fourier_layers[0]
+        .residual
+        .w
+        .iter()
+        .any(|row| row.iter().any(|&v| ctx.get_grad(v) != 0.0));
     assert!(w_has_grad, "Fourier spatial gradients should be non-zero");
 
     let r_has_grad = fno.fourier_layers[0].r.iter().any(|c_out| {
         c_out.iter().any(|c_in| {
             c_in.iter().any(|kx| {
-                kx.iter().any(|&(re, im)| ctx.get_grad(re) != 0.0 || ctx.get_grad(im) != 0.0)
+                kx.iter()
+                    .any(|&(re, im)| ctx.get_grad(re) != 0.0 || ctx.get_grad(im) != 0.0)
             })
         })
     });

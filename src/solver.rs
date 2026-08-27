@@ -1,5 +1,5 @@
 // This file is currently a black box because I don't actually
-// have enough mathematical knowledge when implementing this 
+// have enough mathematical knowledge when implementing this
 // so I just transcribed the code into rust
 use serde::{Deserialize, Serialize};
 

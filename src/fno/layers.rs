@@ -5,7 +5,6 @@ use crate::fno::backprop::fft_traced::*;
 use crate::fno::{Context, Variable};
 
 pub struct LinearLayer {
-    pub in_dims: (usize, usize),  // width, height
     pub channels: (usize, usize), // in, out
     pub w: Vec<Vec<Variable>>,    // [out_channel][in_channel]
 }
@@ -13,7 +12,6 @@ pub struct LinearLayer {
 impl LinearLayer {
     pub fn new(
         ctx: &mut Context,
-        in_dims: (usize, usize),
         channels: (usize, usize),
         rng: &mut StdRng,
     ) -> LinearLayer {
@@ -26,15 +24,16 @@ impl LinearLayer {
                     .collect()
             })
             .collect();
-        LinearLayer {
-            in_dims,
-            channels,
-            w,
-        }
+        LinearLayer { channels, w }
     }
 
-    pub fn forward(&self, ctx: &mut Context, input: &[Variable]) -> Vec<Variable> {
-        let n = self.in_dims.0 * self.in_dims.1;
+    pub fn forward(
+        &self,
+        ctx: &mut Context,
+        in_dims: (usize, usize),
+        input: &[Variable],
+    ) -> Vec<Variable> {
+        let n = in_dims.0 * in_dims.1;
 
         let mut output = vec![ctx.variable(0.0); n * self.channels.1];
         for i in 0..n {
@@ -54,9 +53,8 @@ impl LinearLayer {
 }
 
 pub struct FourierLayer {
-    pub in_dims: (usize, usize),  // width, height
-    pub channels: usize,          // d_v
-    pub modes: (usize, usize),    // num x modes, num y modes
+    pub channels: usize,         // d_v
+    pub modes: (usize, usize),   // num x modes, num y modes
     pub residual: LinearLayer,
     pub r: Vec<Vec<Vec<Vec<(Variable, Variable)>>>>, // [out_channel][in_channel][modes_x][modes_y]
 }
@@ -64,12 +62,11 @@ pub struct FourierLayer {
 impl FourierLayer {
     pub fn new(
         ctx: &mut Context,
-        in_dims: (usize, usize),
         channels: usize,
         modes: (usize, usize),
         rng: &mut StdRng,
     ) -> Self {
-        let residual = LinearLayer::new(ctx, in_dims, (channels, channels), rng);
+        let residual = LinearLayer::new(ctx, (channels, channels), rng);
 
         let a = (1.0 / channels as f32).sqrt() * 0.5;
         let between = Uniform::try_from(-a..a).unwrap();
@@ -96,7 +93,6 @@ impl FourierLayer {
             .collect();
 
         FourierLayer {
-            in_dims,
             channels,
             modes,
             residual,
@@ -104,11 +100,11 @@ impl FourierLayer {
         }
     }
 
-    pub fn forward(&self, ctx: &mut Context, input: &[Variable]) -> Vec<Variable> {
-        let n = self.in_dims.0 * self.in_dims.1;
+    pub fn forward(&self, ctx: &mut Context, in_dims: (usize, usize), input: &[Variable]) -> Vec<Variable> {
+        let n = in_dims.0 * in_dims.1;
 
         // compute residual
-        let w_val = self.residual.forward(ctx, input);
+        let w_val = self.residual.forward(ctx, in_dims, input);
 
         // fourier part
         let mut f_inp = vec![vec![ComplexVariable::new(ctx, 0.0, 0.0); n]; self.channels];
@@ -119,22 +115,22 @@ impl FourierLayer {
                     im: ctx.variable(0.0),
                 };
             }
-            fft_2d(ctx, &mut f_inp[in_channel], self.in_dims.0, self.in_dims.1);
+            fft_2d(ctx, &mut f_inp[in_channel], in_dims.0, in_dims.1);
         }
 
         let mut f_out = vec![vec![ComplexVariable::new(ctx, 0.0, 0.0); n]; self.channels];
 
-        let y_range = (0..self.modes.1.min(self.in_dims.1))
+        let y_range = (0..self.modes.1.min(in_dims.1))
             .map(|ky| (ky, ky))
-            .chain((1..self.modes.1.min(self.in_dims.1)).map(|ky| (self.in_dims.1 - ky, ky)));
+            .chain((1..self.modes.1.min(in_dims.1)).map(|ky| (in_dims.1 - ky, ky)));
 
-        let x_range = (0..self.modes.0.min(self.in_dims.0))
+        let x_range = (0..self.modes.0.min(in_dims.0))
             .map(|kx| (kx, kx))
-            .chain((1..self.modes.0.min(self.in_dims.0)).map(|kx| (self.in_dims.0 - kx, kx)));
+            .chain((1..self.modes.0.min(in_dims.0)).map(|kx| (in_dims.0 - kx, kx)));
 
         for (row, ky) in y_range {
             for (col, kx) in x_range.clone() {
-                let i = row * self.in_dims.0 + col;
+                let i = row * in_dims.0 + col;
 
                 for output_channel in 0..self.channels {
                     let mut sum = ComplexVariable {
@@ -155,7 +151,12 @@ impl FourierLayer {
 
         let mut ret = vec![ctx.variable(0.0); n * self.channels];
         for output_channel in 0..self.channels {
-            ifft_2d(ctx, &mut f_out[output_channel], self.in_dims.0, self.in_dims.1);
+            ifft_2d(
+                ctx,
+                &mut f_out[output_channel],
+                in_dims.0,
+                in_dims.1,
+            );
             for i in 0..n {
                 let idx = i * self.channels + output_channel;
                 let spectral_re = f_out[output_channel][i].re;

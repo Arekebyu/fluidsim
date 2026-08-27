@@ -1,4 +1,7 @@
-use crate::{calculations::fft::{self, ComplexNum}, solver::InitialConditions};
+use crate::{
+    calculations::fft::{self, ComplexNum},
+    solver::InitialConditions,
+};
 use rand::{RngExt, rngs::StdRng, seq::index::sample};
 
 fn sample_gaussian(rng: &mut StdRng) -> ComplexNum {
@@ -6,18 +9,31 @@ fn sample_gaussian(rng: &mut StdRng) -> ComplexNum {
     let u1: f32 = rng.random_range(1e-7..1.0);
     let u2: f32 = rng.random_range(0.0..2.0 * std::f32::consts::PI);
     let r = (-2.0 * u1.ln()).sqrt();
-    ComplexNum{re: u2.cos(), im: u2.sin()}.scale(r)
+    ComplexNum {
+        re: u2.cos(),
+        im: u2.sin(),
+    }
+    .scale(r)
 }
 
-/// generate divergence free ic 
+pub struct ICConfig {
+    pub alpha: f32,
+    pub tau: f32,
+    pub target_std: f32,
+}
+
+/// generate divergence free ic
 pub fn generate_initial_conditions(
-    width: usize,
-    height: usize,
-    alpha: f32,
-    tau: f32,
-    target_std: f32,
+    dimensions: (usize, usize),
+    ICConfig {
+        alpha,
+        tau,
+        target_std,
+    }: ICConfig,
     rng: &mut StdRng,
 ) -> InitialConditions {
+    let width = dimensions.0;
+    let height = dimensions.1;
     let n_pixels = width * height;
 
     let mut w_f = vec![ComplexNum::zero(); n_pixels];

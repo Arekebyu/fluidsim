@@ -1,4 +1,4 @@
-use crate::fno::initialization::generate_initial_conditions;
+use crate::fno::initialization::{self, ICConfig, generate_initial_conditions};
 use crate::{Config, Grid};
 use rand::rngs::StdRng;
 
@@ -20,9 +20,11 @@ pub fn generate_dataset(
     num_steps: usize,
     dt: f32,
     cfg: Config,
-    alpha: f32,
-    tau: f32,
-    target_std: f32,
+    ICConfig {
+        alpha,
+        tau,
+        target_std,
+    }: ICConfig,
     rng: &mut StdRng,
 ) -> TrajectoryDataset {
     let mut trajectories = Vec::with_capacity(num_trajectories);
@@ -30,7 +32,15 @@ pub fn generate_dataset(
     let height = cfg.y_res;
 
     for _ in 0..num_trajectories {
-        let ic = generate_initial_conditions(width, height, alpha, tau, target_std, rng);
+        let ic = generate_initial_conditions(
+            (width, height),
+            initialization::ICConfig {
+                alpha,
+                tau,
+                target_std,
+            },
+            rng,
+        );
         let mut solver = Grid::new(&cfg, ic);
 
         let mut frames = Vec::with_capacity(num_steps + 1);
