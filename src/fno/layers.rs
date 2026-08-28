@@ -10,11 +10,7 @@ pub struct LinearLayer {
 }
 
 impl LinearLayer {
-    pub fn new(
-        ctx: &mut Context,
-        channels: (usize, usize),
-        rng: &mut StdRng,
-    ) -> LinearLayer {
+    pub fn new(ctx: &mut Context, channels: (usize, usize), rng: &mut StdRng) -> LinearLayer {
         let a = (1.0 / channels.0 as f32).sqrt() * 0.5;
         let between = Uniform::try_from(-a..a).unwrap();
         let w = (0..channels.1)
@@ -50,11 +46,34 @@ impl LinearLayer {
         }
         output
     }
+
+    pub fn collect_weights(&self, vars: &mut Vec<Variable>) {
+        for row in &self.w {
+            vars.extend(row);
+        }
+    }
+
+    pub fn from_weights(ctx: &mut Context, channels: (usize, usize), weights: &[f32]) -> Self {
+        assert_eq!(weights.len(), channels.0 * channels.1);
+        let mut idx = 0;
+        let w = (0..channels.1)
+            .map(|_| {
+                (0..channels.0)
+                    .map(|_| {
+                        let val = weights[idx];
+                        idx += 1;
+                        ctx.variable(val)
+                    })
+                    .collect()
+            })
+            .collect();
+        LinearLayer { channels, w }
+    }
 }
 
 pub struct FourierLayer {
-    pub channels: usize,         // d_v
-    pub modes: (usize, usize),   // num x modes, num y modes
+    pub channels: usize,       // d_v
+    pub modes: (usize, usize), // num x modes, num y modes
     pub residual: LinearLayer,
     pub r: Vec<Vec<Vec<Vec<(Variable, Variable)>>>>, // [out_channel][in_channel][modes_x][modes_y]
 }
@@ -70,7 +89,6 @@ impl FourierLayer {
 
         let a = (1.0 / channels as f32).sqrt() * 0.5;
         let between = Uniform::try_from(-a..a).unwrap();
-        // it's ok because I still kept the triangle
         let r = (0..channels)
             .map(|_| {
                 (0..channels)
@@ -100,7 +118,12 @@ impl FourierLayer {
         }
     }
 
-    pub fn forward(&self, ctx: &mut Context, in_dims: (usize, usize), input: &[Variable]) -> Vec<Variable> {
+    pub fn forward(
+        &self,
+        ctx: &mut Context,
+        in_dims: (usize, usize),
+        input: &[Variable],
+    ) -> Vec<Variable> {
         let n = in_dims.0 * in_dims.1;
 
         // compute residual
@@ -151,12 +174,7 @@ impl FourierLayer {
 
         let mut ret = vec![ctx.variable(0.0); n * self.channels];
         for output_channel in 0..self.channels {
-            ifft_2d(
-                ctx,
-                &mut f_out[output_channel],
-                in_dims.0,
-                in_dims.1,
-            );
+            ifft_2d(ctx, &mut f_out[output_channel], in_dims.0, in_dims.1);
             for i in 0..n {
                 let idx = i * self.channels + output_channel;
                 let spectral_re = f_out[output_channel][i].re;
@@ -165,5 +183,62 @@ impl FourierLayer {
             }
         }
         ret
+    }
+
+    pub fn collect_variables(&self, vars: &mut Vec<Variable>) {
+        self.residual.collect_weights(vars);
+        for co in &self.r {
+            for ci in co {
+                for kx in ci {
+                    for &(re, im) in kx {
+                        vars.push(re);
+                        vars.push(im);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn from_weights(
+        ctx: &mut Context,
+        channels: usize,
+        modes: (usize, usize),
+        weights: &[f32],
+    ) -> Self {
+        let residual_size = channels * channels;
+        let r_size = channels * channels * modes.0 * modes.1 * 2;
+        assert_eq!(weights.len(), residual_size + r_size);
+
+        let (residual_weights, r_weights) = weights.split_at(residual_size);
+        let residual = LinearLayer::from_weights(ctx, (channels, channels), residual_weights);
+
+        let mut idx = 0;
+        let r = (0..channels)
+            .map(|_| {
+                (0..channels)
+                    .map(|_| {
+                        (0..modes.0)
+                            .map(|_| {
+                                (0..modes.1)
+                                    .map(|_| {
+                                        let re = ctx.variable(r_weights[idx]);
+                                        let im = ctx.variable(r_weights[idx + 1]);
+                                        idx += 2;
+                                        (re, im)
+                                    })
+                                    .collect()
+                            })
+                            .collect()
+                    })
+                    .collect()
+            })
+            .collect();
+
+        FourierLayer {
+            channels,
+            modes,
+            residual,
+            r,
+        }
     }
 }

@@ -55,7 +55,7 @@ fn slow_dft(input: &[FloatComplex]) -> Vec<FloatComplex> {
 
 #[test]
 fn test_complex_operators() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
     let a = Complex {
         re: ctx.variable(1.0),
         im: ctx.variable(2.0),
@@ -83,7 +83,7 @@ fn test_complex_operators() {
 
 #[test]
 fn test_fft_vs_dft() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
     let float_input = vec![
         FloatComplex::new(1.0, 0.0),
         FloatComplex::new(2.0, -1.0),
@@ -121,7 +121,7 @@ fn test_fft_vs_dft() {
 
 #[test]
 fn test_fft_invertibility_1d() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
     let original_floats = vec![1.0, 2.0, -3.5, 0.0, 0.0, -1.25, 4.0, 3.0];
 
     let mut data = original_floats
@@ -158,7 +158,7 @@ fn test_fft_invertibility_1d() {
 
 #[test]
 fn test_fft_invertibility_2d() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
     let width = 4;
     let height = 4;
 
@@ -209,7 +209,7 @@ fn test_fft_invertibility_2d() {
 
 #[test]
 fn test_linear_regression_training() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
 
     let x = ctx.variable(2.0);
     let target = ctx.variable(5.0);
@@ -249,7 +249,7 @@ fn test_numerical_gradient_checking() {
     let epsilon = 1e-4;
 
     let eval_loss = |w_val: f32| -> f32 {
-        let mut ctx = Context::new();
+        let mut ctx = Context::default();
         let x = ctx.variable(1.5);
         let target = ctx.variable(3.0);
         let w = ctx.variable(w_val);
@@ -260,7 +260,7 @@ fn test_numerical_gradient_checking() {
     };
 
     let w_init = 0.8;
-    let mut ctx = Context::new();
+    let mut ctx = Context::default();
     let x = ctx.variable(1.5);
     let target = ctx.variable(3.0);
     let w = ctx.variable(w_init);

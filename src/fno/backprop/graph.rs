@@ -19,15 +19,12 @@ pub struct Node {
 }
 
 // arena allocation
+#[derive(Default)]
 pub struct Context {
     nodes: Vec<Node>,
 }
 
 impl Context {
-    pub fn new() -> Self {
-        Context { nodes: Vec::new() }
-    }
-
     pub fn variable(&mut self, val: f32) -> Variable {
         let id = self.nodes.len();
         self.nodes.push(Node {
