@@ -21,13 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
+      # - name: Install Rust toolchain
+      #   uses: dtolnay/rust-toolchain@stable
+      #   with:
+      #     targets: wasm32-unknown-unknown
 
-      - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli --version 0.2.127
+      # - name: Install wasm-bindgen-cli
+      #   run: cargo install wasm-bindgen-cli --version 0.2.127
 
       # - name: Generate Checkpoint Models
       #   run: |
@@ -39,10 +39,10 @@ jobs:
       #     cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 25 --output-dir models
       #     mv models/fno_weights.bin models/checkpoint_epoch_25.bin
 
-      - name: Build WebAssembly Package
-        run: |
-          cargo build --target wasm32-unknown-unknown --release --lib
-          wasm-bindgen --target web --out-dir frontend/pkg target/wasm32-unknown-unknown/release/fluidsim.wasm
+      # - name: Build WebAssembly Package
+      #   run: |
+      #     cargo build --target wasm32-unknown-unknown --release --lib
+      #     wasm-bindgen --target web --out-dir frontend/pkg target/wasm32-unknown-unknown/release/fluidsim.wasm
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -50,7 +50,7 @@ jobs:
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './web'
+          path: './frontend'
 
   deploy:
     environment:
