@@ -29,15 +29,15 @@ jobs:
       - name: Install wasm-bindgen-cli
         run: cargo install wasm-bindgen-cli --version 0.2.127
 
-      - name: Generate Checkpoint Models
-        run: |
-          mkdir -p models
-          cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 0 --output-dir models
-          mv models/fno_weights.bin models/checkpoint_epoch_0.bin
-          cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 5 --output-dir models
-          mv models/fno_weights.bin models/checkpoint_epoch_5.bin
-          cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 25 --output-dir models
-          mv models/fno_weights.bin models/checkpoint_epoch_25.bin
+      # - name: Generate Checkpoint Models
+      #   run: |
+      #     mkdir -p models
+      #     cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 0 --output-dir models
+      #     mv models/fno_weights.bin models/checkpoint_epoch_0.bin
+      #     cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 5 --output-dir models
+      #     mv models/fno_weights.bin models/checkpoint_epoch_5.bin
+      #     cargo run --release --bin train -- --x 6.2831853 --y 6.2831853 --num-x 32 --num-y 32 --viscosity 0.005 --num-data 10 --num-epochs 25 --output-dir models
+      #     mv models/fno_weights.bin models/checkpoint_epoch_25.bin
 
       - name: Build WebAssembly Package
         run: |
