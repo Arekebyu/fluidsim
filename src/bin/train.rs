@@ -21,16 +21,16 @@ fn print_usage() {
         --num-y <int>         Grid resolution in Y (default: 32)\n  \
         --viscosity <float>   Fluid kinematic viscosity (default: 0.005)\n  \
         --num-data <int>      Number of trajectories to generate (default: 10)\n  \
-        --num-epochs <int>    Number of training epochs (default: 20)\n\n\
+        --num-epochs <int>    Number of training epochs (default: 25)\n\n\
         Optional Hyperparameters:\n  \
         --dt <float>          Simulation timestep (default: 0.01)\n  \
-        --steps <int>         Number of timesteps per trajectory (default: 5)\n  \
-        --rollout <int>       Autoregressive rollout depth (default: 2)\n  \
+        --steps <int>         Number of timesteps per trajectory (default: 32)\n  \
+        --rollout <int>       Autoregressive rollout depth (default: 16)\n  \
         --lr <float>          Adam learning rate (default: 0.005)\n  \
-        --modes-x <int>       Fourier modes in X (default: 4)\n  \
-        --modes-y <int>       Fourier modes in Y (default: 4)\n  \
+        --modes-x <int>       Fourier modes in X (default: 8)\n  \
+        --modes-y <int>       Fourier modes in Y (default: 8)\n  \
         --layer-channels <int>Latent representation channel width (default: 4)\n  \
-        --num-layers <int>    Number of Fourier layers (default: 2)\n  \
+        --num-layers <int>    Number of Fourier layers (default: 4)\n  \
         --seed <int>          PRNG seed (default: 42)\n  \
         --output-dir <path>   Directory to save model weights (default: models)\n\n\
         Positional Syntax:\n  \
@@ -53,16 +53,16 @@ fn main() -> std::io::Result<()> {
     let mut num_y: usize = 32;
     let mut viscosity: f32 = 0.005;
     let mut num_data: usize = 10;
-    let mut num_epochs: usize = 20;
+    let mut num_epochs: usize = 25;
 
     let mut dt: f32 = 0.01;
-    let mut num_steps: usize = 5;
-    let mut rollout_steps: usize = 2;
+    let mut num_steps: usize = 32;
+    let mut rollout_steps: usize = 16;
     let mut lr: f32 = 0.005;
-    let mut modes_x: usize = 4;
-    let mut modes_y: usize = 4;
+    let mut modes_x: usize = 8;
+    let mut modes_y: usize = 8;
     let mut layer_channels: usize = 4;
-    let mut num_layers: usize = 2;
+    let mut num_layers: usize = 4;
     let mut seed: u64 = 42;
     let mut output_dir = "models".to_string();
 

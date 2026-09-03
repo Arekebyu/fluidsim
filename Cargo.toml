@@ -1,3 +1,11 @@
+[profile.release]
+debug = true
+# opt-level = 3
+# lto = true
+# codegen-units = 1
+# panic = "abort" 
+# strip = true
+
 [package]
 name = "fluidsim"
 version = "0.1.0"
@@ -13,6 +21,10 @@ path = "src/main.rs"
 [[bin]]
 name = "train"
 path = "src/bin/train.rs"
+
+[[bin]]
+name = "profile"
+path = "src/bin/profile.rs"
 
 [dependencies]
 futures = "0.3.32"

@@ -1,0 +1,13 @@
+{
+  "domain": [6.283185, 6.283185],
+  "resolution": [32, 32],
+  "viscosity": 0.005000,
+  "num_data": 10,
+  "num_epochs": 25,
+  "dt": 0.010000,
+  "rollout_steps": 4,
+  "channels": [1, 4, 1],
+  "modes": [12, 12],
+  "num_layers": 4,
+  "num_weights": 18529
+}

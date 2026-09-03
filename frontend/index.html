@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turbulence</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="title-group">
+                    <span class="badge badge-accent">Turbulence simulation</span>
+                    <h1>Neural Fluid Simulator</h1>
+                    <p class="subtitle">Real-Time Fourier Neural Operator (FNO) vs Conventional Navier-Stokes Solver</p>
+                </div>
+                <div class="header-actions">
+                    <a href="https://github.com/arekebyu/fluidsim" target="_blank" class="btn btn-outline">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                        Source Code
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-content">
+            <!-- Left Sidebar: Controls -->
+            <aside class="control-panel">
+                <!-- Checkpoint Selector -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Model Checkpoint</h3>
+                        <span class="info-tag" id="checkpoint-tag">Epoch 25</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="checkpoint-select">Training Progression:</label>
+                        <select id="checkpoint-select" class="form-select">
+                            <option value="2" selected> 25 Epochs </option>
+                            <option value="1"> 5 Epochs</option>
+                            <option value="0"> Untrained </option>
+                        </select>
+                        <p class="help-text">Switch weights to examine the differences</p>
+                    </div>
+                </div>
+
+                <!-- Mesh Invariance / Super-Resolution -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Grid Resolution (Zero-Shot)</h3>
+                    </div>
+                    <div class="control-group">
+                        <label>Spatial Evaluation Mesh:</label>
+                        <div class="btn-group" id="resolution-buttons">
+                            <button class="btn btn-sm btn-toggle" data-res="32">32x32</button>
+                            <button class="btn btn-sm btn-toggle active" data-res="64">64x64</button>
+                            <button class="btn btn-sm btn-toggle" data-res="128">128x128</button>
+                        </div>
+                        <p class="help-text">Demonstrates <strong>Mesh Invariance</strong>: The model trained on 32x32 directly evaluates on 128x128 without retraining.</p>
+                    </div>
+                </div>
+
+                <!-- Viewport Mode -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Display Mode</h3>
+                    </div>
+                    <div class="control-group">
+                        <select id="display-mode" class="form-select">
+                            <option value="0" selected>Side-by-Side </option>
+                            <option value="1">Ground Truth Navier-Stokes Only</option>
+                            <option value="2">Fourier Neural Operator Only</option>
+                            <option value="3">Absolute Error Heatmap (|GT - FNO|)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="vmax-slider">Colormap Scaling (|&omega;| max): <span id="vmax-val">3.0</span></label>
+                        <input type="range" id="vmax-slider" min="0.5" max="8.0" step="0.1" value="3.0" class="form-range">
+                    </div>
+                </div>
+
+                <!-- Simulation Parameters -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Simulation Controls</h3>
+                    </div>
+                    <div class="control-group">
+                        <label for="dt-slider">Timestep (&Delta;t): <span id="dt-val">0.010</span></label>
+                        <input type="range" id="dt-slider" min="0.002" max="0.030" step="0.002" value="0.010" class="form-range">
+                    </div>
+                    <div class="control-group button-row">
+                        <button id="btn-play" class="btn btn-primary">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            <span>Pause</span>
+                        </button>
+                        <button id="btn-step" class="btn btn-secondary">Step</button>
+                        <button id="btn-reset" class="btn btn-secondary">New Fluid (GRF)</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center/Right: Canvas Viewport & Metrics -->
+            <section class="viewport-section">
+                <!-- Metrics HUD -->
+                <div class="metrics-bar">
+                    <div class="metric-card">
+                        <span class="metric-label">Frame Rate</span>
+                        <span class="metric-value" id="metric-fps">60 FPS</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">FNO Latency</span>
+                        <span class="metric-value text-accent" id="metric-latency">-- ms</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Relative L2 Error</span>
+                        <span class="metric-value" id="metric-error">0.00%</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Resolution</span>
+                        <span class="metric-value" id="metric-res">64 x 64</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Parameters</span>
+                        <span class="metric-value" id="metric-params">1,089</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Card -->
+                <div class="canvas-wrapper card">
+                    <div class="canvas-header" id="canvas-header-labels">
+                        <span class="viewport-label label-left">Ground Truth Navier-Stokes (RK2 Pseudo-Spectral)</span>
+                        <span class="viewport-label label-right">Fourier Neural Operator (FNO-2D Surrogate)</span>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="fluid-canvas"></canvas>
+                        <div class="interaction-hint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 15l-3-3m0 0l-3-3m3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
+                            Click and drag on the fluid to stir vortices in real time
+                        </div>
+                    </div>
+                    <!-- Colormap Legend -->
+                    <div class="legend-bar">
+                        <span>Clockwise (-&omega;)</span>
+                        <div class="colormap-gradient"></div>
+                        <span>Counter-Clockwise (+&omega;)</span>
+                    </div>
+                </div>
+
+                <!-- Educational Info Grid -->
+                <!-- <div class="info-grid"> -->
+                <!--     <div class="info-card"> -->
+                <!--         <h4>1. Continuous Operator Learning</h4> -->
+                <!--         <p>Unlike standard CNNs that learn fixed pixel-to-pixel transforms, the Fourier Neural Operator maps between infinite-dimensional function spaces by parameterizing kernel integrals in Fourier space.</p> -->
+                <!--     </div> -->
+                <!--     <div class="info-card"> -->
+                <!--         <h4>2. Zero-Shot Super-Resolution</h4> -->
+                <!--         <p>Because the learned spectral weights parameterize frequency modes rather than discrete pixel grids, the exact same model weights seamlessly generalize to 4x higher resolution at inference time.</p> -->
+                <!--     </div> -->
+                <!--     <div class="info-card"> -->
+                <!--         <h4>3. Real-Time Autoregression</h4> -->
+                <!--         <p>The FNO acts as a learned surrogate solver &omega;(t) &rarr; &omega;(t + &Delta;t), recurrently unrolling long-horizon fluid dynamics with minimal CPU latency directly inside WebAssembly.</p> -->
+                <!--     </div> -->
+                <!-- </div> -->
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+</html>
