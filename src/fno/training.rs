@@ -59,7 +59,7 @@ pub fn train_fno(
     modes: (usize, usize),
     num_layers: usize,
 ) -> Vec<f32> {
-    let dims = (dataset.width, dataset.height);
+    let dims = dataset.dims;
     let n = dims.0 * dims.1;
 
     let mut ctx = Context::default();

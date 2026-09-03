@@ -6,10 +6,18 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "benchmark"
+path = "src/main.rs"
+
+[[bin]]
+name = "train"
+path = "src/bin/train.rs"
+
 [dependencies]
 futures = "0.3.32"
 serde = { version = "1.0.228", features = ["derive"] }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 rand = "0.10.2"
-
+getrandom = { version = "0.4", features = ["wasm_js"] }

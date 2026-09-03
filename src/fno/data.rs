@@ -10,8 +10,7 @@ pub struct Trajectory {
 #[derive(Clone, Debug)]
 pub struct TrajectoryDataset {
     pub trajectories: Vec<Trajectory>,
-    pub width: usize,
-    pub height: usize,
+    pub dims: (usize, usize),
     pub dt: f32,
 }
 
@@ -56,8 +55,7 @@ pub fn generate_dataset(
 
     TrajectoryDataset {
         trajectories,
-        width,
-        height,
+        dims: (width, height),
         dt,
     }
 }

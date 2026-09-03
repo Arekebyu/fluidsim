@@ -1,8 +1,8 @@
 pub mod backprop;
 pub mod data;
-mod initialization;
+pub mod initialization;
 pub mod layers;
-pub mod train;
+pub mod training;
 
 #[cfg(test)]
 pub mod tests;

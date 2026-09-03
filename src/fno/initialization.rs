@@ -2,7 +2,7 @@ use crate::{
     calculations::fft::{self, ComplexNum},
     solver::InitialConditions,
 };
-use rand::{RngExt, rngs::StdRng, seq::index::sample};
+use rand::{RngExt, rngs::StdRng};
 
 fn sample_gaussian(rng: &mut StdRng) -> ComplexNum {
     //box-muller transformation implementation
